@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SPCC 2019–2025 · Análisis Financiero</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #fafaf8;
+      --ink: #141414;
+      --muted: #6b6b66;
+      --line: #e4e2dc;
+      --accent: #c1571f;
+      /* cobre */
+      --accent-soft: #f0dcce;
+      --good: #2f6f4f;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+    }
+
+    .slide-deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    @media (min-width:769px) {
+      .slide-deck {
+        max-width: calc(100vh * 16/9);
+        max-height: calc(100vw * 9/16);
+        margin: auto;
+        position: absolute;
+        inset: 0;
+      }
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: left;
+      padding: 64px 90px;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      background: var(--bg);
+      z-index: 1;
+    }
+
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    .slide-content {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .kicker {
+      font-size: 13px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: clamp(30px, 4.2vw, 52px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -.01em;
+    }
+
+    h2 {
+      font-size: clamp(21px, 2.8vw, 32px);
+      font-weight: 800;
+      letter-spacing: -.01em;
+    }
+
+    p {
+      font-size: clamp(13.5px, 1.5vw, 17px);
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 780px;
+    }
+
+    .rule {
+      width: 56px;
+      height: 3px;
+      background: var(--accent);
+    }
+
+    .big-number {
+      font-size: clamp(44px, 6.4vw, 88px);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1;
+      color: var(--ink);
+    }
+
+    .big-number .unit {
+      font-size: .32em;
+      font-weight: 600;
+      color: var(--muted);
+      margin-left: 6px;
+    }
+
+    .delta {
+      font-size: clamp(14px, 1.6vw, 19px);
+      font-weight: 700;
+      color: var(--good);
+    }
+
+    .delta.neg {
+      color: #b23b2e;
+    }
+
+    .stat-row {
+      display: flex;
+      gap: 44px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .stat .label {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .stat .value {
+      font-size: clamp(24px, 3vw, 38px);
+      font-weight: 800;
+    }
+
+    .stat .value small {
+      font-size: .4em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .chart-box {
+      width: 100%;
+      height: clamp(190px, 30vh, 300px);
+    }
+
+    .barlist {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .barlist .row {
+      display: grid;
+      grid-template-columns: 190px 1fr auto;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .barlist .name {
+      font-size: 13.5px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .barlist .track {
+      height: 9px;
+      background: var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .barlist .fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 6px;
+      width: 0;
+      transition: width 1.1s cubic-bezier(.2, .7, .2, 1);
+    }
+
+    .barlist .amt {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 90px 1fr;
+      gap: 0;
+      width: 100%;
+    }
+
+    .compare .col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .compare .col.right {
+      align-items: flex-end;
+      text-align: right;
+    }
+
+    .compare .name {
+      font-size: 12px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .compare .row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .compare .row .v {
+      font-size: clamp(17px, 2vw, 24px);
+      font-weight: 800;
+    }
+
+    .compare .row .k {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .compare .vs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: .1em;
+    }
+
+    .compare .eq {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 800;
+      margin-top: 6px;
+    }
+
+    ul.clean {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    ul.clean li {
+      display: flex;
+      gap: 14px;
+      align-items: baseline;
+      font-size: clamp(13.5px, 1.6vw, 16px);
+      color: var(--ink);
+    }
+
+    ul.clean li::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex: none;
+      transform: translateY(-2px);
+    }
+
+    ul.clean b {
+      font-weight: 800;
+    }
+
+    ol.rec {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      counter-reset: rec;
+    }
+
+    ol.rec li {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      font-size: clamp(13.5px, 1.6vw, 16px);
+      color: var(--ink);
+    }
+
+    ol.rec li::before {
+      counter-increment: rec;
+      content: counter(rec);
+      flex: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer-tag {
+      position: absolute;
+      bottom: 22px;
+      left: 90px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    /* map */
+    .map-wrap {
+      display: flex;
+      justify-content: center;
+    }
+
+    .peru-map {
+      width: 100%;
+      max-width: 150px;
+      height: auto;
+      overflow: visible;
+    }
+
+    .peru-map path {
+      fill: var(--accent-soft);
+      stroke: var(--accent);
+      stroke-width: 1.6;
+    }
+
+    .peru-map .pin circle {
+      fill: var(--accent);
+      opacity: 0;
+      animation: pinPop .5s ease-out forwards;
+      animation-delay: inherit;
+      transform-origin: center;
+    }
+
+    .peru-map .pin text {
+      font-size: 11px;
+      font-weight: 700;
+      fill: var(--ink);
+      opacity: 0;
+      animation: fadeUp .5s ease-out forwards;
+      animation-delay: inherit;
+    }
+
+    @keyframes pinPop {
+      0% {
+        opacity: 0;
+        transform: scale(0);
+      }
+
+      60% {
+        opacity: 1;
+        transform: scale(1.4);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* value chain */
+    .chain {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .chain-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chain-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--accent-soft);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--accent);
+      font-size: 13px;
+    }
+
+    .chain-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.2;
+      max-width: 110px;
+    }
+
+    .chain-arrow {
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 700;
+      flex: none;
+      padding: 0 4px;
+      transform: translateY(12px);
+    }
+
+    /* animations */
+    .animate-fade-up {
+      opacity: 1;
+    }
+
+    .slide.active .animate-fade-up {
+      animation: fadeUp .5s ease-out;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-stagger>* {
+      opacity: 1;
+    }
+
+    .slide.active .animate-stagger>* {
+      animation: fadeUp .5s ease-out;
+    }
+
+    .animate-stagger>*:nth-child(1) {
+      animation-delay: .05s;
+    }
+
+    .animate-stagger>*:nth-child(2) {
+      animation-delay: .15s;
+    }
+
+    .animate-stagger>*:nth-child(3) {
+      animation-delay: .25s;
+    }
+
+    .animate-stagger>*:nth-child(4) {
+      animation-delay: .35s;
+    }
+
+    .animate-stagger>*:nth-child(5) {
+      animation-delay: .45s;
+    }
+
+    .animate-stagger>*:nth-child(6) {
+      animation-delay: .55s;
+    }
+
+    /* nav */
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: var(--accent);
+      transition: width .3s;
+      z-index: 1000;
+    }
+
+    .nav-controls {
+      position: fixed;
+      bottom: calc(20px + env(safe-area-inset-bottom, 16px));
+      left: 50%;
+      transform: translate3d(-50%, 0, 0);
+      -webkit-transform: translate3d(-50%, 0, 0);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 99999;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .nav-btn {
+      background: #ffffff;
+      border: 1.5px solid var(--line);
+      color: var(--ink);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+      transition: transform .12s ease, background .15s ease;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .nav-btn:hover {
+      background: var(--accent-soft);
+    }
+
+    .nav-btn:active {
+      transform: scale(0.90);
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .slide-counter {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .placeholder {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    @media (max-width:768px) {
+      .slide {
+        padding: 32px 20px calc(80px + env(safe-area-inset-bottom, 16px)) 20px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .nav-controls {
+        bottom: calc(16px + env(safe-area-inset-bottom, 12px));
+        gap: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 6px 14px;
+        border-radius: 30px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      .nav-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 19px;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .stat-row {
+        gap: 24px;
+      }
+
+      .compare {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .compare .vs {
+        display: none;
+      }
+
+      .compare .col.right {
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      .chain {
+        flex-wrap: wrap;
+        row-gap: 16px;
+      }
+
+      .chain-arrow {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="slide-deck">
+
+    <!-- 1. CARÁTULA -->
+    <div class="slide active">
+      <div class="slide-content animate-stagger">
+        <div class="kicker">Universidad del Pacífico · Escuela de Postgrado</div>
+        <h1>Análisis de los Estados Financieros de Southern Peru Copper Corporation (SPCC)</h1>
+        <div class="rule"></div>
+        <div class="stat-row" style="margin-top:6px;">
+          <div class="stat"><span class="label">Curso</span><span class="value" style="font-size:18px;">Contabilidad
+              Financiera</span></div>
+          <div class="stat"><span class="label">Grupo</span><span class="value" style="font-size:18px;">4</span></div>
+          <div class="stat"><span class="label">Profesor</span><span class="value placeholder"
+              style="font-size:18px;">Eduardo Ribero</span></div>
+        </div>
+        <div class="stat" style="margin-top:6px;">
+          <span class="label">Integrantes</span>
+          <div class="integrantes-grid"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 24px; margin-top: 6px;">
+            <span class="value placeholder" style="font-size:16px; font-weight: 600;">Marlhen Estrada Vargas</span>
+            <span class="value placeholder" style="font-size:16px; font-weight: 600;">Victor Juarez Racchumi</span>
+            <span class="value placeholder" style="font-size:16px; font-weight: 600;">Guiler Marcelo Silvestre</span>
+            <span class="value placeholder" style="font-size:16px; font-weight: 600;">Fabricio Solis Velasquez</span>
+            <span class="value placeholder" style="font-size:16px; font-weight: 600;">Cesar Sotelo Molero</span>
+            <span class="value placeholder" style="font-size:16px; font-weight: 600;">Jesus Tataje Morales</span>
+          </div>
+        </div>
+        <p style="margin-top:8px;">Lima, Perú · Setiembre 2026</p>
+      </div>
+    </div>
+
+    <!-- 2. INTRODUCCIÓN -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Introducción</div>
+        <h2 class="animate-fade-up">SPCC: todo el proceso del cobre, bajo un mismo techo</h2>
+        <div class="grid-2" style="align-items:center;">
+          <div class="map-wrap animate-fade-up">
+            <svg viewBox="0 0 260 340" class="peru-map"
+              aria-label="Mapa esquemático del Perú con las operaciones de SPCC">
+              <path
+                d="M9.6,85.5 L23.1,65.5 L44.3,49.1 L121.3,3.6 L221.5,80.0 L231.1,201.8 L240.7,249.1 L240.7,321.7 L213.8,337.2 L192.6,325.4 L181.0,301.7 L156.0,261.8 L102.1,219.9 L84.7,185.5 L55.9,147.3 L30.8,127.3 Z" />
+              <g class="pin" style="animation-delay:.3s">
+                <circle cx="86.7" cy="221.8" r="9"></circle><text x="98" y="225">Lima</text>
+              </g>
+              <g class="pin" style="animation-delay:.5s">
+                <circle cx="204.3" cy="312.7" r="9"></circle><text x="216" y="308">Cuajone</text>
+              </g>
+              <g class="pin" style="animation-delay:.65s">
+                <circle cx="210.1" cy="322.4" r="9"></circle><text x="216" y="333">Toquepala</text>
+              </g>
+              <g class="pin" style="animation-delay:.8s">
+                <circle cx="192.0" cy="325.0" r="9"></circle><text x="70" y="329" text-anchor="end">Ilo (fundición y
+                  refinería)</text>
+              </g>
+            </svg>
+          </div>
+          <div class="animate-stagger" style="display:flex;flex-direction:column;gap:12px;">
+            <p style="margin:0;">Extrae, funde y refina cobre en un solo grupo integrado; vende cátodos, concentrado,
+              molibdeno y metales preciosos. Exporta el 84% de su producción a Europa, América y Asia.</p>
+            <div class="stat-row">
+              <div class="stat"><span class="label">Fundada</span><span class="value">1954</span></div>
+              <div class="stat"><span class="label">Clientes top 5</span><span class="value">41.2<small>%</small></span>
+              </div>
+              <div class="stat"><span class="label">Posición en Perú</span><span class="value"
+                  style="font-size:18px;">Top 3 en cobre</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="chain animate-stagger">
+          <div class="chain-step">
+            <div class="chain-icon">01</div><span class="chain-label">Extracción</span>
+          </div>
+          <div class="chain-arrow">→</div>
+          <div class="chain-step">
+            <div class="chain-icon">02</div><span class="chain-label">Molienda y flotación</span>
+          </div>
+          <div class="chain-arrow">→</div>
+          <div class="chain-step">
+            <div class="chain-icon">03</div><span class="chain-label">Fundición</span>
+          </div>
+          <div class="chain-arrow">→</div>
+          <div class="chain-step">
+            <div class="chain-icon">04</div><span class="chain-label">Refinación electrolítica</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. ESTADO DE SITUACIÓN FINANCIERA -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Análisis vertical y horizontal · Balance</div>
+        <h2 class="animate-fade-up">Estado de situación financiera</h2>
+        <div class="grid-2">
+          <div class="chart-box"><canvas id="chartActivo"></canvas></div>
+          <div class="chart-box"><canvas id="chartFinanciamiento"></canvas></div>
+        </div>
+        <div class="stat-row animate-stagger">
+          <div class="stat"><span class="label">Activo total 2025</span><span class="value">US$
+              8,770<small>M</small></span></div>
+          <div class="stat"><span class="label">Crecimiento 2019-25</span><span
+              class="value">+32.0<small>%</small></span></div>
+          <div class="stat"><span class="label">Patrimonio / activo</span><span
+              class="value">79.9<small>%</small></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. ESTADO DE RESULTADOS -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Análisis vertical y horizontal · Resultados</div>
+        <h2 class="animate-fade-up">Estado de resultados</h2>
+        <div class="chart-box" style="height:clamp(220px,36vh,340px);"><canvas id="chartResultados"></canvas></div>
+        <div class="stat-row animate-stagger">
+          <div class="stat"><span class="label">Ventas 2019→2025</span><span class="value">+78.5<small>%</small></span>
+          </div>
+          <div class="stat"><span class="label">Ganancia neta 2019→2025</span><span
+              class="value">+151.1<small>%</small></span></div>
+          <div class="stat"><span class="label">Costo de ventas / ventas 2025</span><span
+              class="value">41.8<small>%</small></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. LIQUIDEZ Y SOLVENCIA -->
+    <div class="slide">
+      <div class="slide-content animate-stagger">
+        <div class="kicker">Posición financiera</div>
+        <h2>Ratios de liquidez y solvencia</h2>
+        <div class="stat-row">
+          <div class="stat"><span class="label">Liquidez corriente</span><span class="value">2.07<small>x</small></span>
+          </div>
+          <div class="stat"><span class="label">Prueba ácida</span><span class="value">1.69<small>x</small></span></div>
+          <div class="stat"><span class="label">Capital de trabajo</span><span class="value">US$
+              876<small>M</small></span></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><span class="label">Endeudamiento total</span><span
+              class="value">20.1<small>%</small></span></div>
+          <div class="stat"><span class="label">Pasivo / patrimonio</span><span
+              class="value">0.25<small>x</small></span></div>
+          <div class="stat"><span class="label">Cobertura de intereses</span><span
+              class="value">232<small>x</small></span></div>
+        </div>
+        <p>La liquidez se mantuvo siempre por encima de 1.6x y la deuda que genera intereses es prácticamente nula (0.4%
+          del patrimonio).</p>
+      </div>
+    </div>
+
+    <!-- 6. GESTIÓN DE TESORERÍA -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Gestión de tesorería o financiera de corto plazo</div>
+        <h2 class="animate-fade-up">Rotación y ciclo de conversión de efectivo</h2>
+        <div class="barlist" style="margin-top:6px;">
+          <div class="row"><span class="name">Período de cobro (CxC)</span>
+            <div class="track">
+              <div class="fill" data-w="81.2"></div>
+            </div><span class="amt">48.7 días · 7.40x/año</span>
+          </div>
+          <div class="row"><span class="name">Período de inventarios</span>
+            <div class="track">
+              <div class="fill" data-w="86.7"></div>
+            </div><span class="amt">52.0 días · 6.92x/año</span>
+          </div>
+          <div class="row"><span class="name">Período de pago (CxP)</span>
+            <div class="track">
+              <div class="fill" data-w="91.0"></div>
+            </div><span class="amt">54.6 días · 6.59x/año</span>
+          </div>
+        </div>
+        <div class="stat-row animate-stagger" style="margin-top:6px;">
+          <div class="stat"><span class="label">Ciclo operativo</span><span
+              class="value">100.7<small>días</small></span></div>
+          <div class="stat"><span class="label">Ciclo de conversión de efectivo</span><span
+              class="value">46.1<small>días</small></span></div>
+          <div class="stat"><span class="label">Mejora vs. 2019</span><span class="value">-33<small>días</small></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. RENTABILIDAD: ROA Y ROE -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Análisis de la rentabilidad</div>
+        <h2 class="animate-fade-up">ROA y ROE: al doble en siete años</h2>
+        <div class="chart-box" style="height:clamp(220px,36vh,340px);"><canvas id="chartRentabilidad"></canvas></div>
+        <div class="stat-row animate-stagger">
+          <div class="stat"><span class="label">ROA 2019 → 2025</span><span class="value">12.2 →
+              23.1<small>%</small></span></div>
+          <div class="stat"><span class="label">ROE 2019 → 2025</span><span class="value">14.4 →
+              29.0<small>%</small></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. MÁRGENES -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Análisis de la rentabilidad</div>
+        <h2 class="animate-fade-up">Márgenes bruto, operativo y neto</h2>
+        <div class="chart-box" style="height:clamp(220px,36vh,340px);"><canvas id="chartMargenes"></canvas></div>
+        <div class="stat-row animate-stagger">
+          <div class="stat"><span class="label">Margen bruto 2025</span><span class="value">58.2<small>%</small></span>
+          </div>
+          <div class="stat"><span class="label">Margen operativo 2025</span><span
+              class="value">55.6<small>%</small></span></div>
+          <div class="stat"><span class="label">Margen neto 2025</span><span class="value">38.7<small>%</small></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. APALANCAMIENTO FINANCIERO -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Análisis de la rentabilidad</div>
+        <h2 class="animate-fade-up">Efecto del apalancamiento financiero</h2>
+        <div class="grid-2">
+          <div class="chart-box"><canvas id="chartApalancamiento"></canvas></div>
+          <div class="animate-stagger" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="stat"><span class="label">Multiplicador de capital 2025</span><span
+                class="value">1.25<small>x</small></span></div>
+            <div class="stat"><span class="label">Deuda financiera / patrimonio</span><span
+                class="value">0.40<small>%</small></span></div>
+            <p>SPCC casi no usa deuda para crecer: toda la brecha entre ROE (29.0%) y ROA (23.1%) viene de pasivos sin
+              interés (impuesto diferido, proveedores, trabajadores), no de préstamos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. MÉTODO DUPONT -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Análisis de la rentabilidad</div>
+        <h2 class="animate-fade-up">Método Dupont: ¿de dónde viene el ROE?</h2>
+        <div class="compare animate-stagger">
+          <div class="col">
+            <div class="name">2019</div>
+            <div class="row"><span class="v">27.5%</span><span class="k">Margen neto</span></div>
+            <div class="row"><span class="v">0.443x</span><span class="k">Rotación del activo</span></div>
+            <div class="row"><span class="v">1.183x</span><span class="k">Multiplicador de capital</span></div>
+            <div class="eq">= ROE 14.4%</div>
+          </div>
+          <div class="vs">→</div>
+          <div class="col right">
+            <div class="name">2025</div>
+            <div class="row"><span class="v">38.7%</span><span class="k">Margen neto</span></div>
+            <div class="row"><span class="v">0.598x</span><span class="k">Rotación del activo</span></div>
+            <div class="row"><span class="v">1.252x</span><span class="k">Multiplicador de capital</span></div>
+            <div class="eq">= ROE 29.0%</div>
+          </div>
+        </div>
+        <p style="margin-top:4px;">De los 14.6 puntos que subió el ROE, la mayor parte viene del margen neto (+11.2 pp)
+          y de la rotación del activo (+35%); el apalancamiento casi no aporta (+6%).</p>
+      </div>
+    </div>
+
+    <!-- 11. CONCLUSIONES Y RECOMENDACIONES -->
+    <div class="slide">
+      <div class="slide-content">
+        <div class="kicker animate-fade-up">Cierre</div>
+        <h2 class="animate-fade-up">Conclusiones y recomendaciones</h2>
+        <div class="grid-2" style="align-items:start;">
+          <div class="animate-stagger">
+            <p style="font-weight:800;color:var(--ink);margin-bottom:8px;">Conclusiones</p>
+            <ul class="clean">
+              <li><b>Posición sólida y de bajo riesgo:</b> 80% del activo financiado con patrimonio propio, sin deuda
+                bancaria.</li>
+              <li><b>Tesorería cada vez más eficiente:</b> el ciclo de conversión de efectivo bajó de 79 a 46 días.</li>
+              <li><b>Rentabilidad creciente y de origen operativo:</b> ROE de 14.4% a 29.0%, impulsado por el margen y
+                la rotación, no por deuda.</li>
+            </ul>
+          </div>
+          <div class="animate-stagger">
+            <p style="font-weight:800;color:var(--ink);margin-bottom:8px;">Recomendaciones</p>
+            <ol class="rec">
+              <li>Usar deuda moderada (0.25–0.30x el patrimonio) para financiar Tía María, Los Chancas y Michiquillay:
+                el activo rinde 33% y la deuda costaría menos de 6%.</li>
+              <li>Formalizar una política de tesorería y cobertura del precio del cobre: caja mínima de 0.8x el pasivo
+                corriente y cobertura de los US$ 465.6 M de ventas a precio provisional.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-tag">SPCC · Análisis EEFF 2019–2025 · Grupo 4</div>
+  </div>
+
+  <div class="nav-controls" id="navControls">
+    <button class="nav-btn" id="btnPrev" type="button"
+      aria-label="Diapositiva anterior">←</button>
+    <span class="slide-counter"><span id="current">1</span> / <span id="total">11</span></span>
+    <button class="nav-btn" id="btnNext" type="button"
+      aria-label="Diapositiva siguiente">→</button>
+  </div>
+
+  <script>
+    let current = 1;
+    const slides = document.querySelectorAll('.slide');
+    const total = slides.length;
+    const totalEl = document.getElementById('total');
+    const currentEl = document.getElementById('current');
+    const progressBar = document.getElementById('progressBar');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+
+    if (totalEl) totalEl.textContent = total;
+
+    // Small guard so the several events of a single tap (touchend, pointerup,
+    // click) only navigate once.
+    let lastNavTime = 0;
+
+    function go(dir) {
+      const now = Date.now();
+      if (now - lastNavTime < 400) return;
+      lastNavTime = now;
+      showSlide(current + dir);
+    }
+
+    window.navNext = function () { go(1); };
+    window.navPrev = function () { go(-1); };
+
+    function showSlide(n) {
+      if (n < 1) n = 1;
+      if (n > total) n = total;
+      current = n;
+
+      for (let i = 0; i < slides.length; i++) {
+        const s = slides[i];
+        const isTarget = (i === n - 1);
+        if (isTarget) {
+          s.classList.add('active');
+          s.style.display = 'flex';
+          s.style.opacity = '1';
+          s.style.visibility = 'visible';
+          s.style.pointerEvents = 'auto';
+          s.style.zIndex = '10';
+
+          // Reset barlist fills
+          s.querySelectorAll('.barlist .fill').forEach(f => {
+            f.style.width = '0';
+            requestAnimationFrame(() => { f.style.width = f.dataset.w + '%'; });
+          });
+
+          // Resize any chart instances in this slide
+          if (typeof Chart !== 'undefined') {
+            s.querySelectorAll('canvas').forEach(cv => {
+              const ch = Chart.getChart ? Chart.getChart(cv) : null;
+              if (ch) ch.resize();
+            });
+          }
+
+          s.scrollTop = 0;
+        } else {
+          s.classList.remove('active');
+          s.style.display = 'none';
+          s.style.opacity = '0';
+          s.style.visibility = 'hidden';
+          s.style.pointerEvents = 'none';
+          s.style.zIndex = '1';
+        }
+      }
+
+      if (currentEl) currentEl.textContent = n;
+      if (progressBar) progressBar.style.width = (n / total * 100) + '%';
+    }
+
+    // Robust bindings for desktop and iOS Safari. No preventDefault() is called,
+    // so Safari's synthetic click is never suppressed. The first event of a tap
+    // (touchend, pointerup or click) navigates; the rest are blocked by the
+    // 400ms guard above.
+    if (btnNext) {
+      btnNext.addEventListener('click', window.navNext);
+      btnNext.addEventListener('pointerup', window.navNext);
+      btnNext.addEventListener('touchend', window.navNext);
+    }
+    if (btnPrev) {
+      btnPrev.addEventListener('click', window.navPrev);
+      btnPrev.addEventListener('pointerup', window.navPrev);
+      btnPrev.addEventListener('touchend', window.navPrev);
+    }
+
+    // Swipe gesture support for touchscreen devices
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      if (!touchStartX) return;
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX < 0) {
+          window.navNext(e);
+        } else {
+          window.navPrev(e);
+        }
+      }
+      touchStartX = 0;
+      touchStartY = 0;
+    }, { passive: true });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); window.navNext(e); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); window.navPrev(e); }
+    });
+
+    // Screen side-tap navigation (tap left 25% for prev, right 75% for next)
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#navControls') || e.target.closest('button') || e.target.closest('a')) return;
+      const x = e.clientX;
+      if (x < window.innerWidth * 0.25) {
+        window.navPrev(e);
+      } else {
+        window.navNext(e);
+      }
+    });
+
+    // Initialize first slide immediately
+    showSlide(1);
+
+    // Chart.js initialization (protected with try/catch and offline verification)
+    const years = ['2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+    const inkMuted = '#6b6b66';
+    const gridColor = 'rgba(20,20,20,0.06)';
+
+    function initCharts() {
+      if (typeof Chart === 'undefined') {
+        console.warn('Chart.js no disponible (modo offline o vista previa de iOS sin conexión CDN).');
+        return;
+      }
+      try {
+        Chart.defaults.font.family = "'Helvetica Neue',Arial,sans-serif";
+        Chart.defaults.color = inkMuted;
+
+        const cActivo = document.getElementById('chartActivo');
+        if (cActivo) {
+          new Chart(cActivo, {
+            type: 'line',
+            data: {
+              labels: years, datasets: [{
+                label: 'Activo total (US$ M)',
+                data: [6642.9, 6872.7, 7108.7, 7292.6, 7440.1, 8063.5, 8770.1],
+                borderColor: '#c1571f', backgroundColor: 'rgba(193,87,31,0.10)',
+                borderWidth: 3, fill: true, tension: .35, pointRadius: 3, pointBackgroundColor: '#c1571f'
+              }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+              scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, ticks: { callback: v => v.toLocaleString() } } }
+            }
+          });
+        }
+
+        const cFin = document.getElementById('chartFinanciamiento');
+        if (cFin) {
+          new Chart(cFin, {
+            type: 'doughnut',
+            data: { labels: ['Patrimonio', 'Pasivo total'], datasets: [{ data: [79.9, 20.1], backgroundColor: ['#c1571f', '#e4e2dc'], borderWidth: 0 }] },
+            options: {
+              responsive: true, maintainAspectRatio: false, cutout: '68%',
+              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 16 } } }
+            }
+          });
+        }
+
+        const cRes = document.getElementById('chartResultados');
+        if (cRes) {
+          new Chart(cRes, {
+            type: 'bar',
+            data: {
+              labels: years, datasets: [
+                { type: 'bar', label: 'Ventas (US$ M)', data: [2940.1, 3153.6, 4370.8, 3908.5, 3854.3, 4604.6, 5247.6], backgroundColor: '#e4e2dc', order: 2 },
+                { type: 'line', label: 'Ganancia neta (US$ M)', data: [808.0, 790.2, 1612.7, 1255.8, 1261.3, 1454.7, 2029.2], borderColor: '#c1571f', backgroundColor: '#c1571f', borderWidth: 3, tension: .35, pointRadius: 3, order: 1 }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 16 } } },
+              scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor } } }
+            }
+          });
+        }
+
+        const cRent = document.getElementById('chartRentabilidad');
+        if (cRent) {
+          new Chart(cRent, {
+            type: 'line',
+            data: {
+              labels: years, datasets: [
+                { label: 'ROE (%)', data: [14.4, 14.1, 29.5, 20.9, 20.7, 22.8, 29.0], borderColor: '#c1571f', backgroundColor: 'rgba(193,87,31,0.08)', borderWidth: 3, tension: .35, pointRadius: 3 },
+                { label: 'ROA (%)', data: [12.2, 11.5, 22.7, 17.2, 17.0, 18.0, 23.1], borderColor: '#141414', backgroundColor: 'rgba(20,20,20,0.05)', borderWidth: 2, borderDash: [5, 4], tension: .35, pointRadius: 3 }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 16 } } },
+              scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, ticks: { callback: v => v + '%' } } }
+            }
+          });
+        }
+
+        const cMarg = document.getElementById('chartMargenes');
+        if (cMarg) {
+          new Chart(cMarg, {
+            type: 'line',
+            data: {
+              labels: years, datasets: [
+                { label: 'Margen bruto', data: [42.8, 47.1, 63.6, 47.2, 50.8, 52.8, 58.2], borderColor: '#c1571f', borderWidth: 3, tension: .35, pointRadius: 2.5 },
+                { label: 'Margen operativo', data: [39.7, 42.9, 60.5, 45.5, 48.0, 50.3, 55.6], borderColor: '#8a3d15', borderWidth: 2, borderDash: [5, 4], tension: .35, pointRadius: 2.5 },
+                { label: 'Margen neto', data: [27.5, 25.1, 36.9, 32.1, 32.7, 31.6, 38.7], borderColor: '#141414', borderWidth: 2, borderDash: [2, 3], tension: .35, pointRadius: 2.5 }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, padding: 16 } } },
+              scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, ticks: { callback: v => v + '%' } } }
+            }
+          });
+        }
+
+        const cApal = document.getElementById('chartApalancamiento');
+        if (cApal) {
+          new Chart(cApal, {
+            type: 'line',
+            data: {
+              labels: years, datasets: [{
+                label: 'Multiplicador de capital (veces)',
+                data: [1.183, 1.225, 1.298, 1.213, 1.222, 1.263, 1.252],
+                borderColor: '#c1571f', backgroundColor: 'rgba(193,87,31,0.10)', borderWidth: 3, fill: true, tension: .35, pointRadius: 3
+              }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+              scales: { x: { grid: { display: false } }, y: { grid: { color: gridColor }, ticks: { callback: v => v + 'x' } } }
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Error al inicializar gráficos:', err);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCharts);
+    } else {
+      initCharts();
+    }
+  </script>
+</body>
+
+</html>
